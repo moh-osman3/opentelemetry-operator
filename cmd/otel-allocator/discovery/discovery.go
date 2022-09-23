@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/discovery"
+	"github.com/prometheus/prometheus/model/relabel"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
 	allocatorWatcher "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/watcher"
@@ -84,6 +85,17 @@ func (m *Manager) ApplyConfig(source allocatorWatcher.EventSource, cfg *config.C
 	return m.manager.ApplyConfig(discoveryCfg)
 }
 
+func (m *Manager) CreateRelabelConfigsMap() map[string][]*relabel.Config {
+	relabelConfigs := make(map[string][]*relabel.Config)
+	for _, value := range m.configsMap {
+		for _, scrapeConfig := range value.ScrapeConfigs {
+			relabelConfigs[scrapeConfig.JobName] = scrapeConfig.RelabelConfigs
+		}
+	}
+
+	return relabelConfigs
+}
+
 func (m *Manager) Watch(fn func(targets map[string]*allocation.TargetItem)) {
 	log := m.log.WithValues("component", "opentelemetry-targetallocator")
 
@@ -95,16 +107,17 @@ func (m *Manager) Watch(fn func(targets map[string]*allocation.TargetItem)) {
 				return
 			case tsets := <-m.manager.SyncCh():
 				targets := map[string]*allocation.TargetItem{}
-
+				relabelConfigs := m.CreateRelabelConfigsMap()
 				for jobName, tgs := range tsets {
 					var count float64 = 0
 					for _, tg := range tgs {
 						for _, t := range tg.Targets {
 							count++
 							item := &allocation.TargetItem{
-								JobName:   jobName,
-								TargetURL: string(t[model.AddressLabel]),
-								Label:     t.Merge(tg.Labels),
+								JobName:        jobName,
+								TargetURL:      string(t[model.AddressLabel]),
+								Label:          t.Merge(tg.Labels),
+								RelabelConfigs: relabelConfigs[jobName],
 							}
 							targets[item.Hash()] = item
 						}

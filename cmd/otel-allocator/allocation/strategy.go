@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/relabel"
 )
 
 type AllocatorProvider func(log logr.Logger) Allocator
@@ -70,11 +71,12 @@ type Allocator interface {
 }
 
 type TargetItem struct {
-	JobName       string
-	Link          LinkJSON
-	TargetURL     string
-	Label         model.LabelSet
-	CollectorName string
+	JobName        string
+	Link           LinkJSON
+	TargetURL      string
+	Label          model.LabelSet
+	CollectorName  string
+	RelabelConfigs []*relabel.Config
 }
 
 func NewTargetItem(jobName string, targetURL string, label model.LabelSet, collectorName string) *TargetItem {
