@@ -1,9 +1,6 @@
-package targetfilter
+package prehooktargetfilter
 
 import (
-//	"errors"
-//	"fmt"
-//	"net/url"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -13,44 +10,21 @@ import (
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
 )
 
-type TargetFilter struct {
-	log        logr.Logger       
-	close      chan struct{}
-	sig        chan int
-	targets    map[string]*allocation.TargetItem 
+type RelabelConfigTargetFilter struct {
+	log         logr.Logger       
+	targetItems map[string]*allocation.TargetItem 
+	allocator   *allocation.Allocator
 }
 
-func NewTargetFilter(log logr.Logger) *TargetFilter {
-	return &TargetFilter{
+func NewRelabelConfigTargetFilter(log logr.Logger, allocator *allocation.Allocator) AllocatorPrehook {
+	return &RelabelConfigTargetFilter{
 		log:        log,
-		close:      make(chan struct{}),
-		sig:        make(chan int),
+		allocator:  allocator,
 	}
 }
 
 
-func (tf *TargetFilter) Watch(fn func(targets map[string]*allocation.TargetItem)) {
-	log := tf.log.WithValues("component", "opentelemetry-targetallocator")
-	go func() {
-		for {
-			select {
-			case <- tf.close:
-				log.Info("Service Discovery watch event stopped: discovery manager closed")
-				return
-			case <- tf.sig:
-				if tf.targets != nil {
-					fn(tf.targets)
-				}
-			}
-		}
-	}()
-}
-
-func (tf *TargetFilter) Close() {
-	close(tf.close)
-}
-
-func (tf *TargetFilter) RelabelConfigFilterTargets(targets map[string]*allocation.TargetItem) {
+func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.TargetItem) {
 	filteredTargets := make(map[string]*allocation.TargetItem)
 	for jobName, tItem := range targets {
 		keepTarget := true
@@ -66,8 +40,7 @@ func (tf *TargetFilter) RelabelConfigFilterTargets(targets map[string]*allocatio
 		}
 	}
 
-	tf.sig <- 1
-	tf.targets = filteredTargets
+	(*tf.allocator).SetTargets(filteredTargets)
 	return
 }
 

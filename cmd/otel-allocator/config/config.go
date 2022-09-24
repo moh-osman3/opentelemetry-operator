@@ -34,8 +34,8 @@ type Config struct {
 	LabelSelector          map[string]string  `yaml:"label_selector,omitempty"`
 	Config                 *promconfig.Config `yaml:"config"`
 	AllocationStrategy     *string            `yaml:"allocation_strategy,omitempty"`
-	// "none" is no filter strategy
-	// "relabel_config" is to apply relabel_config to filter targets 
+	// "no_op" is no filter strategy
+	// "relabel_config" is to apply relabel_config to drop targets
 	TargetsFilterStrategy  *string            `yaml:"filter_targets,omitempty`
 }
 
@@ -50,7 +50,7 @@ func (c Config) GetTargetsFilterStrategy() string {
 	if c.TargetsFilterStrategy != nil {
 		return *c.TargetsFilterStrategy
 	}
-	return "none"
+	return "no_op"
 }
 
 type PrometheusCRWatcherConfig struct {

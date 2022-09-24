@@ -61,8 +61,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	filterStrategy := cfg.GetTargetsFilterStrategy()
-	var targetFilter prehook.TargetFilter
+	allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log, &allocator)
+
 	watcher, err := allocatorWatcher.NewWatcher(setupLog, cliConf, allocator)
 	if err != nil {
 		setupLog.Error(err, "Can't start the watchers")
@@ -74,15 +74,7 @@ func main() {
 	discoveryManager := lbdiscovery.NewManager(log, ctx, gokitlog.NewNopLogger())
 	defer discoveryManager.Close()
 
-	if filterStrategy == "none" {
-		discoveryManager.Watch(allocator.SetTargets)
-	} else {
-		targetFilter = prehook.NewTargetFilter(log)
-		defer targetFilter.Close()
-		discoveryManager.Watch(targetFilter.RelabelConfigFilterTargets)
-		targetFilter.Watch(allocator.SetTargets) 
-	}
-
+	discoveryManager.Watch(allocatorPrehook.SetTargets)
 
 	k8sclient, err := configureFileDiscovery(log, allocator, discoveryManager, context.Background(), cliConf)
 	if err != nil {
