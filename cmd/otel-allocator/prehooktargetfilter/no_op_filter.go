@@ -19,7 +19,6 @@ func NewNoOpTargetFilter(log logr.Logger, allocator *allocation.Allocator) Alloc
 	}
 }
 
-
 func (tf *NoOpTargetFilter) SetTargets(targets map[string]*allocation.TargetItem) {
 	(*tf.allocator).SetTargets(targets)
 	return

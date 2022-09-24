@@ -23,7 +23,6 @@ func NewRelabelConfigTargetFilter(log logr.Logger, allocator *allocation.Allocat
 	}
 }
 
-
 func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.TargetItem) {
 	filteredTargets := make(map[string]*allocation.TargetItem)
 	for jobName, tItem := range targets {

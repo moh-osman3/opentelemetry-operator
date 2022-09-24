@@ -71,8 +71,7 @@ func (m *Manager) Watch(fn func(targets map[string]*allocation.TargetItem)) {
 				return
 			case tsets := <-m.manager.SyncCh():
 				targets := map[string]*allocation.TargetItem{}
-				// This is where CreateRelabelConfigsMap() can be called
-				// Now GenerateFilteredTset() can be called
+
 				for jobName, tgs := range tsets {
 					var count float64 = 0
 					for _, tg := range tgs {
