@@ -40,6 +40,7 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 	}
 
 	(*tf.allocator).SetTargets(filteredTargets)
+	tf.targetItems = filteredTargets
 	return
 }
 

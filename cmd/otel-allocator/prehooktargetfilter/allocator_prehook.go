@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	noOpTargetFilterName          = "no_op"
-	relabelConfigTargetFilterName = "relabel_config_filter"
+	noOpTargetFilterName          = "no-op"
+	relabelConfigTargetFilterName = "relabel-config"
 )
 
 type AllocatorPrehook interface {
