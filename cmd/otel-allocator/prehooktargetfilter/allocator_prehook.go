@@ -15,15 +15,16 @@ const (
 
 type AllocatorPrehook interface {
 	SetTargets(targets map[string]*allocation.TargetItem)
+	TargetItems() map[string]*allocation.TargetItem
 }
 
-type AllocatorPrehookProvider func(log logr.Logger, allocator *allocation.Allocator) AllocatorPrehook
+type AllocatorPrehookProvider func(log logr.Logger, allocator allocation.Allocator) AllocatorPrehook
 
 var (
 	registry = map[string]AllocatorPrehookProvider{}
 )
 
-func New(name string, log logr.Logger, allocator *allocation.Allocator) (AllocatorPrehook, error) {
+func New(name string, log logr.Logger, allocator allocation.Allocator) (AllocatorPrehook, error) {
 	if p, ok := registry[name]; ok {
 		return p(log, allocator), nil
 	}

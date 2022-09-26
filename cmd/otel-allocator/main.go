@@ -61,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log, &allocator)
+	allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log, allocator)
 
 	watcher, err := allocatorWatcher.NewWatcher(setupLog, cliConf, allocator)
 	if err != nil {

@@ -34,7 +34,7 @@ type Config struct {
 	LabelSelector          map[string]string  `yaml:"label_selector,omitempty"`
 	Config                 *promconfig.Config `yaml:"config"`
 	AllocationStrategy     *string            `yaml:"allocation_strategy,omitempty"`
-	// "no-op" is no filter strategy
+	// "no-op" is no filter strategy (default)
 	// "relabel-config" is to apply relabel_config to drop targets
 	TargetsFilterStrategy  *string            `yaml:"filter_targets,omitempty`
 }

@@ -2,6 +2,7 @@ package prehooktargetfilter
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
@@ -11,12 +12,13 @@ import (
 )
 
 type RelabelConfigTargetFilter struct {
+	m           sync.RWMutex
 	log         logr.Logger       
 	targetItems map[string]*allocation.TargetItem 
-	allocator   *allocation.Allocator
+	allocator   allocation.Allocator
 }
 
-func NewRelabelConfigTargetFilter(log logr.Logger, allocator *allocation.Allocator) AllocatorPrehook {
+func NewRelabelConfigTargetFilter(log logr.Logger, allocator allocation.Allocator) AllocatorPrehook {
 	return &RelabelConfigTargetFilter{
 		log:        log,
 		allocator:  allocator,
@@ -28,7 +30,7 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 	for jobName, tItem := range targets {
 		keepTarget := true
 		for _, cfg := range tItem.RelabelConfigs {
-			if !Relabel(tItem.Label, cfg) {
+			if IsDropTarget(tItem.Label, cfg) {
 				keepTarget = false
 				break
 			}
@@ -39,15 +41,26 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 		}
 	}
 
-	(*tf.allocator).SetTargets(filteredTargets)
+	tf.allocator.SetTargets(filteredTargets)
 	tf.targetItems = filteredTargets
 	return
+}
+
+// TargetItems returns a shallow copy of the targetItems map.
+func (c *RelabelConfigTargetFilter) TargetItems() map[string]*allocation.TargetItem {
+	c.m.RLock()
+	defer c.m.RUnlock()
+	targetItemsCopy := make(map[string]*allocation.TargetItem)
+	for k, v := range c.targetItems {
+		targetItemsCopy[k] = v
+	}
+	return targetItemsCopy
 }
 
 // Goal of this function is to determine whether a given target should
 // be dropped or not - function should be called for each item in the relabel_config
 // TODO: add more actions?
-func Relabel(lset model.LabelSet, cfg *relabel.Config) bool {
+func IsDropTarget(lset model.LabelSet, cfg *relabel.Config) bool {
 	values := make([]string, 0, len(cfg.SourceLabels))
 	for _, ln := range cfg.SourceLabels {
 		if val, ok := lset[ln]; ok {
@@ -59,11 +72,11 @@ func Relabel(lset model.LabelSet, cfg *relabel.Config) bool {
 	switch cfg.Action {
 	case "drop":
 		if cfg.Regex.MatchString(val) {
-			return false
+			return true
 		}
 	default:
-		return true
+		return false
 	}
 
-	return true
+	return false
 }
