@@ -75,12 +75,9 @@ func IsDropTarget(lset model.LabelSet, cfg *relabel.Config) bool {
 			return true
 		}
 	case "keep":
-		if cfg.Regex.MatchString(val) {
-			return false
+		if !cfg.Regex.MatchString(val) {
+			return true
 		}
-		// source_label values did not match the regex
-		// target should be dropped bc no match for "keep" action
-		return true
 	default:
 		return false
 	}
