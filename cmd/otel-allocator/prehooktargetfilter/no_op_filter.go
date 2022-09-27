@@ -29,11 +29,11 @@ func (tf *NoOpTargetFilter) SetTargets(targets map[string]*allocation.TargetItem
 }
 
 // TargetItems returns a shallow copy of the targetItems map.
-func (c *NoOpTargetFilter) TargetItems() map[string]*allocation.TargetItem {
-	c.m.RLock()
-	defer c.m.RUnlock()
+func (tf *NoOpTargetFilter) TargetItems() map[string]*allocation.TargetItem {
+	tf.m.RLock()
+	defer tf.m.RUnlock()
 	targetItemsCopy := make(map[string]*allocation.TargetItem)
-	for k, v := range c.targetItems {
+	for k, v := range tf.targetItems {
 		targetItemsCopy[k] = v
 	}
 	return targetItemsCopy

@@ -27,6 +27,12 @@ var (
 		Regex:        relabel.MustNewRegexp("(.*)"),
 		Action:       "drop",	
 	}
+
+	DefaultKeepRelabelConfig = relabel.Config{
+			SourceLabels: model.LabelNames{"a"},
+			Regex:        relabel.MustNewRegexp("bad.*match"),
+			Action:       "keep",
+	}
 )
 
 func colIndex(index, numCols int) int {
@@ -53,7 +59,7 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) map[string]*al
 			}
 		} else {
 			newTarget.RelabelConfigs = []*relabel.Config{
-				&DefaultDropRelabelConfig,
+				&DefaultKeepRelabelConfig,
 			}
 		}
 		toReturn[newTarget.Hash()] = newTarget

@@ -47,11 +47,11 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 }
 
 // TargetItems returns a shallow copy of the targetItems map.
-func (c *RelabelConfigTargetFilter) TargetItems() map[string]*allocation.TargetItem {
-	c.m.RLock()
-	defer c.m.RUnlock()
+func (tf *RelabelConfigTargetFilter) TargetItems() map[string]*allocation.TargetItem {
+	tf.m.RLock()
+	defer tf.m.RUnlock()
 	targetItemsCopy := make(map[string]*allocation.TargetItem)
-	for k, v := range c.targetItems {
+	for k, v := range tf.targetItems {
 		targetItemsCopy[k] = v
 	}
 	return targetItemsCopy
@@ -74,6 +74,13 @@ func IsDropTarget(lset model.LabelSet, cfg *relabel.Config) bool {
 		if cfg.Regex.MatchString(val) {
 			return true
 		}
+	case "keep":
+		if cfg.Regex.MatchString(val) {
+			return false
+		}
+		// source_label values did not match the regex
+		// target should be dropped bc no match for "keep" action
+		return true
 	default:
 		return false
 	}
