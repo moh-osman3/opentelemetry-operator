@@ -15,7 +15,6 @@
 package prehook
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 
@@ -33,7 +32,7 @@ type RelabelConfigTargetFilter struct {
 	allocator   allocation.Allocator
 }
 
-func NewRelabelConfigTargetFilter(log logr.Logger, allocator allocation.Allocator) Prehook {
+func NewRelabelConfigTargetFilter(log logr.Logger, allocator allocation.Allocator) Hook {
 	return &RelabelConfigTargetFilter{
 		log:         log,
 		allocator:   allocator,
@@ -48,7 +47,7 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 		for _, cfg := range tItem.RelabelConfigs {
 			if tf.IsDropTarget(tItem.Label, cfg) {
 				keepTarget = false
-				break
+				break // inner loop
 			}
 		}
 
@@ -59,18 +58,12 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 	}
 
 	tf.allocator.SetTargets(tf.targetItems)
-	tf.log.Info(fmt.Sprintf("Relabel filtering completed. Keeping %d target(s) out of %d total targets", numRemainingTargets, len(targets)))
+	tf.log.V(2).Info("Filtering complete", "seen", len(targets), "kept", numRemainingTargets)
 }
 
 // TargetItems returns a shallow copy of the targetItems map.
 func (tf *RelabelConfigTargetFilter) TargetItems() map[string]*allocation.TargetItem {
-	tf.m.RLock()
-	defer tf.m.RUnlock()
-	targetItemsCopy := make(map[string]*allocation.TargetItem)
-	for k, v := range tf.targetItems {
-		targetItemsCopy[k] = v
-	}
-	return targetItemsCopy
+	return tf.allocator.TargetItems()
 }
 
 // Goal of this function is to determine whether a given target should
@@ -81,7 +74,7 @@ func (tf *RelabelConfigTargetFilter) IsDropTarget(lset model.LabelSet, cfg *rela
 		if val, ok := lset[ln]; ok {
 			values = append(values, string(val))
 		} else {
-			tf.log.Info(fmt.Sprintf("label %v not found in lset, skipping..", ln))
+			tf.log.V(2).Info("Label not found in lset, skipping", ln)
 			return false
 		}
 	}

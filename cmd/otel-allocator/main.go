@@ -39,7 +39,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/collector"
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/config"
 	lbdiscovery "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/discovery"
-	prehook "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehooktargetfilter"
+	prehook "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 	allocatorWatcher "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/watcher"
 )
 

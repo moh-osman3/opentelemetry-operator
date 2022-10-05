@@ -28,25 +28,25 @@ const (
 	relabelConfigTargetFilterName = "relabel-config"
 )
 
-type Prehook interface {
+type Hook interface {
 	SetTargets(targets map[string]*allocation.TargetItem)
 	TargetItems() map[string]*allocation.TargetItem
 }
 
-type PrehookProvider func(log logr.Logger, allocator allocation.Allocator) Prehook
+type Provider func(log logr.Logger, allocator allocation.Allocator) Hook
 
 var (
-	registry = map[string]PrehookProvider{}
+	registry = map[string]Provider{}
 )
 
-func New(name string, log logr.Logger, allocator allocation.Allocator) (Prehook, error) {
+func New(name string, log logr.Logger, allocator allocation.Allocator) (Hook, error) {
 	if p, ok := registry[name]; ok {
 		return p(log.WithName("Prehook").WithName(name), allocator), nil
 	}
 	return nil, fmt.Errorf("unregistered filtering strategy: %s", name)
 }
 
-func Register(name string, provider PrehookProvider) error {
+func Register(name string, provider Provider) error {
 	if _, ok := registry[name]; ok {
 		return errors.New("already registered")
 	}

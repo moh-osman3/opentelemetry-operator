@@ -25,7 +25,7 @@ type noOpTargetFilter struct {
 	allocator allocation.Allocator
 }
 
-func newNoOpTargetFilter(log logr.Logger, allocator allocation.Allocator) Prehook {
+func newNoOpTargetFilter(log logr.Logger, allocator allocation.Allocator) Hook {
 	return &noOpTargetFilter{
 		log:       log,
 		allocator: allocator,
