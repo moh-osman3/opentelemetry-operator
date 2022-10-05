@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package prehooktargetfilter
+package prehook
 
 import (
 	"errors"
@@ -28,39 +28,28 @@ const (
 	relabelConfigTargetFilterName = "relabel-config"
 )
 
-type AllocatorPrehook interface {
+type Prehook interface {
 	SetTargets(targets map[string]*allocation.TargetItem)
 	TargetItems() map[string]*allocation.TargetItem
 }
 
-type AllocatorPrehookProvider func(log logr.Logger, allocator allocation.Allocator) AllocatorPrehook
+type PrehookProvider func(log logr.Logger, allocator allocation.Allocator) Prehook
 
 var (
-	registry = map[string]AllocatorPrehookProvider{}
+	registry = map[string]PrehookProvider{}
 )
 
-func New(name string, log logr.Logger, allocator allocation.Allocator) (AllocatorPrehook, error) {
+func New(name string, log logr.Logger, allocator allocation.Allocator) (Prehook, error) {
 	if p, ok := registry[name]; ok {
-		return p(log, allocator), nil
+		return p(log.WithName("Prehook").WithName(name), allocator), nil
 	}
 	return nil, fmt.Errorf("unregistered filtering strategy: %s", name)
 }
 
-func Register(name string, provider AllocatorPrehookProvider) error {
+func Register(name string, provider PrehookProvider) error {
 	if _, ok := registry[name]; ok {
 		return errors.New("already registered")
 	}
 	registry[name] = provider
 	return nil
-}
-
-func init() {
-	err := Register(noOpTargetFilterName, NewNoOpTargetFilter)
-	if err != nil {
-		panic(err)
-	}
-	err = Register(relabelConfigTargetFilterName, NewRelabelConfigTargetFilter)
-	if err != nil {
-		panic(err)
-	}
 }

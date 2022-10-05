@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package prehooktargetfilter
+package prehook
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ type RelabelConfigTargetFilter struct {
 	allocator   allocation.Allocator
 }
 
-func NewRelabelConfigTargetFilter(log logr.Logger, allocator allocation.Allocator) AllocatorPrehook {
+func NewRelabelConfigTargetFilter(log logr.Logger, allocator allocation.Allocator) Prehook {
 	return &RelabelConfigTargetFilter{
 		log:         log,
 		allocator:   allocator,
@@ -98,4 +98,11 @@ func (tf *RelabelConfigTargetFilter) IsDropTarget(lset model.LabelSet, cfg *rela
 	}
 
 	return false
+}
+
+func init() {
+	err := Register(relabelConfigTargetFilterName, NewRelabelConfigTargetFilter)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package prehooktargetfilter
+package prehook
 
 import (
 	"github.com/go-logr/logr"
@@ -20,22 +20,29 @@ import (
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
 )
 
-type NoOpTargetFilter struct {
+type noOpTargetFilter struct {
 	log       logr.Logger
 	allocator allocation.Allocator
 }
 
-func NewNoOpTargetFilter(log logr.Logger, allocator allocation.Allocator) AllocatorPrehook {
-	return &NoOpTargetFilter{
+func newNoOpTargetFilter(log logr.Logger, allocator allocation.Allocator) Prehook {
+	return &noOpTargetFilter{
 		log:       log,
 		allocator: allocator,
 	}
 }
 
-func (tf *NoOpTargetFilter) SetTargets(targets map[string]*allocation.TargetItem) {
+func (tf *noOpTargetFilter) SetTargets(targets map[string]*allocation.TargetItem) {
 	tf.allocator.SetTargets(targets)
 }
 
-func (tf *NoOpTargetFilter) TargetItems() map[string]*allocation.TargetItem {
+func (tf *noOpTargetFilter) TargetItems() map[string]*allocation.TargetItem {
 	return tf.allocator.TargetItems()
+}
+
+func init() {
+	err := Register(noOpTargetFilterName, newNoOpTargetFilter)
+	if err != nil {
+		panic(err)
+	}
 }
