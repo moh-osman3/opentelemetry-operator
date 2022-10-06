@@ -50,8 +50,9 @@ func TestNoOpSetTargets(t *testing.T) {
 	allocatorPrehook, err := New("no-op", logger, allocator)
 	assert.Nil(t, err)
 
-	targets, _ := makeNNewTargets(numTargets, 3, 0)
+	targets, _, _ := makeNNewTargets(numTargets, 3, 0)
 	allocatorPrehook.SetTargets(targets)
 	remainingTargetItems := allocatorPrehook.TargetItems()
 	assert.Len(t, remainingTargetItems, numTargets)
+	assert.Equal(t, remainingTargetItems, targets)
 }

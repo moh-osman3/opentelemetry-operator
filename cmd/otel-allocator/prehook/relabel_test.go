@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"testing"
 
-	// "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/stretchr/testify/assert"
@@ -125,8 +124,9 @@ func colIndex(index, numCols int) int {
 	return index % numCols
 }
 
-func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*allocation.TargetItem, int) {
+func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*allocation.TargetItem, int, map[string]*allocation.TargetItem) {
 	toReturn := map[string]*allocation.TargetItem{}
+	expectedMap := make(map[string]*allocation.TargetItem)
 	numItemsRemaining := n
 	for i := startingIndex; i < n+startingIndex; i++ {
 		collector := fmt.Sprintf("collector-%d", colIndex(i, numCollectors))
@@ -147,12 +147,15 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*a
 			&RelabelConfigs[index].cfg,
 		}
 
+		targetKey := newTarget.Hash()
 		if RelabelConfigs[index].isDrop {
 			numItemsRemaining--
+		} else {
+			expectedMap[targetKey] = newTarget
 		}
-		toReturn[newTarget.Hash()] = newTarget
+		toReturn[targetKey] = newTarget
 	}
-	return toReturn, numItemsRemaining
+	return toReturn, numItemsRemaining, expectedMap
 }
 
 func TestSetTargets(t *testing.T) {
@@ -160,9 +163,10 @@ func TestSetTargets(t *testing.T) {
 	allocatorPrehook, err := New("relabel-config", logger, allocator)
 	assert.Nil(t, err)
 
-	targets, numRemaining := makeNNewTargets(numTargets, 3, 0)
+	targets, numRemaining, expectedTargetMap := makeNNewTargets(numTargets, 3, 0)
 	allocatorPrehook.SetTargets(targets)
 	remainingTargetItems := allocatorPrehook.TargetItems()
 	assert.Len(t, remainingTargetItems, numRemaining)
 	assert.Equal(t, remainingTargetItems, allocator.TargetItems())
+	assert.Equal(t, remainingTargetItems, expectedTargetMap)
 }
