@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/stretchr/testify/assert"
@@ -152,28 +153,6 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*a
 		toReturn[newTarget.Hash()] = newTarget
 	}
 	return toReturn, numItemsRemaining
-}
-
-func TestIsDroppedTarget(t *testing.T) {
-	tests := []struct {
-		input   model.LabelSet
-		relabel *relabel.Config
-		output  bool
-	}{
-		{
-			input: model.LabelSet{
-				"i": "foo",
-				"b": "bar",
-			},
-			relabel: &DefaultDropRelabelConfig,
-			output:  true,
-		},
-	}
-	var tf RelabelConfigTargetFilter
-	for _, test := range tests {
-		res := tf.IsDropTarget(test.input, test.relabel)
-		assert.Equal(t, test.output, res)
-	}
 }
 
 func TestSetTargets(t *testing.T) {

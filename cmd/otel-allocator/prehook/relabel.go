@@ -15,11 +15,11 @@
 package prehook
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/model/relabel"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
@@ -40,14 +40,29 @@ func NewRelabelConfigTargetFilter(log logr.Logger, allocator allocation.Allocato
 	}
 }
 
+// helper function converts from model.LabelSet to []labels.Label
+func ConvertLabelToPromLabelSet(lbls model.LabelSet) []labels.Label {
+	newLabels := make([]labels.Label, len(lbls))
+	index := 0
+	for k,v := range lbls {
+		newLabels[index].Name = string(k)
+		newLabels[index].Value = string(v)
+		index++
+	}
+	return newLabels
+}
+
 func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.TargetItem) {
 	numRemainingTargets := 0
 	for jobName, tItem := range targets {
 		keepTarget := true
+		lset := ConvertLabelToPromLabelSet(tItem.Label)
 		for _, cfg := range tItem.RelabelConfigs {
-			if tf.IsDropTarget(tItem.Label, cfg) {
+			if new_lset := relabel.Process(lset, cfg); new_lset == nil {
 				keepTarget = false
 				break // inner loop
+			} else {
+				lset = new_lset
 			}
 		}
 
@@ -64,33 +79,6 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 // TargetItems returns a shallow copy of the targetItems map.
 func (tf *RelabelConfigTargetFilter) TargetItems() map[string]*allocation.TargetItem {
 	return tf.allocator.TargetItems()
-}
-
-// Goal of this function is to determine whether a given target should
-// be dropped or not - function should be called for each item in the relabel_config.
-func (tf *RelabelConfigTargetFilter) IsDropTarget(lset model.LabelSet, cfg *relabel.Config) bool {
-	values := make([]string, 0, len(cfg.SourceLabels))
-	for _, ln := range cfg.SourceLabels {
-		if val, ok := lset[ln]; ok {
-			values = append(values, string(val))
-		} else {
-			tf.log.V(2).Info("Label not found in lset, skipping", ln)
-			return false
-		}
-	}
-	val := strings.Join(values, cfg.Separator)
-
-	if cfg.Action == "drop" {
-		if cfg.Regex.MatchString(val) {
-			return true
-		}
-	} else if cfg.Action == "keep" {
-		if !cfg.Regex.MatchString(val) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func init() {
