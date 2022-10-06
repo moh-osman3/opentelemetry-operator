@@ -15,8 +15,6 @@
 package prehook
 
 import (
-	"sync"
-
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
@@ -26,7 +24,6 @@ import (
 )
 
 type RelabelConfigTargetFilter struct {
-	m           sync.RWMutex
 	log         logr.Logger
 	allocator   allocation.Allocator
 }
