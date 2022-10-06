@@ -28,7 +28,6 @@ import (
 type RelabelConfigTargetFilter struct {
 	m           sync.RWMutex
 	log         logr.Logger
-	targetItems map[string]*allocation.TargetItem
 	allocator   allocation.Allocator
 }
 
@@ -36,7 +35,6 @@ func NewRelabelConfigTargetFilter(log logr.Logger, allocator allocation.Allocato
 	return &RelabelConfigTargetFilter{
 		log:         log,
 		allocator:   allocator,
-		targetItems: make(map[string]*allocation.TargetItem),
 	}
 }
 
@@ -53,7 +51,8 @@ func ConvertLabelToPromLabelSet(lbls model.LabelSet) []labels.Label {
 }
 
 func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.TargetItem) {
-	numRemainingTargets := 0
+	numTargets := len(targets)
+	numRemainingTargets := numTargets
 	for jobName, tItem := range targets {
 		keepTarget := true
 		lset := ConvertLabelToPromLabelSet(tItem.Label)
@@ -66,14 +65,14 @@ func (tf *RelabelConfigTargetFilter) SetTargets(targets map[string]*allocation.T
 			}
 		}
 
-		if keepTarget {
-			tf.targetItems[jobName] = tItem
-			numRemainingTargets++
+		if !keepTarget {
+			delete(targets, jobName)
+			numRemainingTargets--
 		}
 	}
 
-	tf.allocator.SetTargets(tf.targetItems)
-	tf.log.V(2).Info("Filtering complete", "seen", len(targets), "kept", numRemainingTargets)
+	tf.allocator.SetTargets(targets)
+	tf.log.V(2).Info("Filtering complete", "seen", numTargets, "kept", numRemainingTargets)
 }
 
 // TargetItems returns a shallow copy of the targetItems map.

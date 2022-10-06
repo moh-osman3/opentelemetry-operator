@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/prometheus/prometheus/model/labels"
+	// "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/stretchr/testify/assert"
@@ -164,4 +164,5 @@ func TestSetTargets(t *testing.T) {
 	allocatorPrehook.SetTargets(targets)
 	remainingTargetItems := allocatorPrehook.TargetItems()
 	assert.Len(t, remainingTargetItems, numRemaining)
+	assert.Equal(t, remainingTargetItems, allocator.TargetItems())
 }
