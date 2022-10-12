@@ -120,8 +120,6 @@ func (c *consistentHashingAllocator) handleTargets(diff diff.Changes[*prehook.Ta
 			c.addTargetToTargetItems(target)
 		}
 	}
-
-	c.log.Info("targets handled successfully")
 }
 
 // handleCollectors receives the new and removed collectors and reconciles the current state.
@@ -134,7 +132,6 @@ func (c *consistentHashingAllocator) handleCollectors(diff diff.Changes[*Collect
 		c.consistentHasher.Remove(k.Name)
 		TargetsPerCollector.WithLabelValues(k.Name, consistentHashingStrategyName).Set(0)
 	}
-	c.log.Info(fmt.Sprintf("dropping %d collectors from collector list", len(diff.Removals())))
 	// Insert the new collectors
 	for _, i := range diff.Additions() {
 		c.collectors[i.Name] = NewCollector(i.Name)
@@ -194,8 +191,6 @@ func (c *consistentHashingAllocator) SetCollectors(collectors map[string]*Collec
 
 	// Check for collector changes
 	collectorsDiff := diff.Maps(c.collectors, collectors)
-	c.log.Info(fmt.Sprintf("The number of collectors to be added is: %d", len(collectorsDiff.Additions())))
-	c.log.Info(fmt.Sprintf("The number of collectors to be removed is: %d", len(collectorsDiff.Removals())))
 	if len(collectorsDiff.Additions()) != 0 || len(collectorsDiff.Removals()) != 0 {
 		c.handleCollectors(collectorsDiff)
 	}
