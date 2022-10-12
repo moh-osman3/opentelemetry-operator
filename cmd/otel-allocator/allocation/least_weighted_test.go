@@ -65,7 +65,7 @@ func makeNCollectors(n int, startingIndex int) map[string]*Collector {
 }
 
 func TestSetCollectors(t *testing.T) {
-	s, _ := New("least-weighted", logger, "")
+	s, _ := New("least-weighted", logger, nil)
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -81,7 +81,7 @@ func TestSetCollectors(t *testing.T) {
 
 func TestAddingAndRemovingTargets(t *testing.T) {
 	// prepare allocator with initial targets and collectors
-	s, _ := New("least-weighted", logger, "")
+	s, _ := New("least-weighted", logger, nil)
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -116,7 +116,7 @@ func TestAddingAndRemovingTargets(t *testing.T) {
 // Tests that two targets with the same target url and job name but different label set are both added.
 func TestAllocationCollision(t *testing.T) {
 	// prepare allocator with initial targets and collectors
-	s, _ := New("least-weighted", logger, "")
+	s, _ := New("least-weighted", logger, nil)
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -150,7 +150,7 @@ func TestAllocationCollision(t *testing.T) {
 }
 
 func TestNoCollectorReassignment(t *testing.T) {
-	s, _ := New("least-weighted", logger, "")
+	s, _ := New("least-weighted", logger, nil)
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -181,7 +181,7 @@ func TestNoCollectorReassignment(t *testing.T) {
 }
 
 func TestSmartCollectorReassignment(t *testing.T) {
-	s, _ := New("least-weighted", logger, "")
+	s, _ := New("least-weighted", logger, nil)
 
 	cols := makeNCollectors(4, 0)
 	s.SetCollectors(cols)
@@ -232,7 +232,7 @@ func TestSmartCollectorReassignment(t *testing.T) {
 func TestCollectorBalanceWhenAddingAndRemovingAtRandom(t *testing.T) {
 
 	// prepare allocator with 3 collectors and 'random' amount of targets
-	s, _ := New("least-weighted", logger, "")
+	s, _ := New("least-weighted", logger, nil)
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)

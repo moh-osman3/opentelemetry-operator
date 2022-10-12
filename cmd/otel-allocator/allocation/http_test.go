@@ -25,9 +25,9 @@ import (
 )
 
 func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
-	baseAllocator, _ := New("least-weighted", logger, "")
+	baseAllocator, _ := New("least-weighted", logger, nil)
 	baseAllocator.SetCollectors(map[string]*Collector{"test-collector": {Name: "test-collector"}})
-	statefulAllocator, _ := New("least-weighted", logger, "")
+	statefulAllocator, _ := New("least-weighted", logger, nil)
 	statefulAllocator.SetCollectors(map[string]*Collector{"test-collector-0": {Name: "test-collector-0"}})
 	type args struct {
 		collector string

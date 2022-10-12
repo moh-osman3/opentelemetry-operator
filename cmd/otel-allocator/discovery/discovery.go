@@ -82,6 +82,7 @@ func (m *Manager) ApplyConfig(source allocatorWatcher.EventSource, cfg *config.C
 			discoveryCfg[scrapeConfig.JobName] = scrapeConfig.ServiceDiscoveryConfigs
 		}
 	}
+	// m.Hook.Apply -> goal of this 
 	return m.manager.ApplyConfig(discoveryCfg)
 }
 

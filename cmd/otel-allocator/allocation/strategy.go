@@ -47,13 +47,7 @@ var (
 	}, []string{"method", "strategy"})
 )
 
-func New(name string, log logr.Logger, filter string) (Allocator, error) {
-	hook, err := prehook.New(filter, log)
-
-	if err != nil {
-		log.Info("Filter strategy is invalid or not found")
-	}
-
+func New(name string, log logr.Logger, hook prehook.Hook) (Allocator, error) {
 	if p, ok := registry[name]; ok {
 		return p(log, hook), nil
 	}

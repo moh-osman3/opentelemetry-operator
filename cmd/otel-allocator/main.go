@@ -72,15 +72,15 @@ func main() {
 
 	log := ctrl.Log.WithName("allocator")
 
-	allocator, err := allocation.New(cfg.GetAllocationStrategy(), log, cfg.GetTargetsFilterStrategy())
+	allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log)
 	if err != nil {
-		setupLog.Error(err, "Unable to initialize allocation strategy")
+		setupLog.Error(err, "Unable to initialize targets filter strategy")
 		os.Exit(1)
 	}
 
-	// allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log, allocator)
+	allocator, err := allocation.New(cfg.GetAllocationStrategy(), log, allocatorPrehook)
 	if err != nil {
-		setupLog.Error(err, "Unable to initialize targets filter strategy")
+		setupLog.Error(err, "Unable to initialize allocation strategy")
 		os.Exit(1)
 	}
 
