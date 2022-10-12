@@ -20,17 +20,19 @@ import (
 
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
+	
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 )
 
 func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
-	baseAllocator, _ := New("least-weighted", logger)
+	baseAllocator, _ := New("least-weighted", logger, "")
 	baseAllocator.SetCollectors(map[string]*Collector{"test-collector": {Name: "test-collector"}})
-	statefulAllocator, _ := New("least-weighted", logger)
+	statefulAllocator, _ := New("least-weighted", logger, "")
 	statefulAllocator.SetCollectors(map[string]*Collector{"test-collector-0": {Name: "test-collector-0"}})
 	type args struct {
 		collector string
 		job       string
-		cMap      map[string][]TargetItem
+		cMap      map[string][]prehook.TargetItem
 		allocator Allocator
 	}
 	var tests = []struct {
@@ -43,7 +45,7 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 			args: args{
 				collector: "test-collector",
 				job:       "test-job",
-				cMap:      map[string][]TargetItem{},
+				cMap:      map[string][]prehook.TargetItem{},
 				allocator: baseAllocator,
 			},
 			want: nil,
@@ -53,9 +55,9 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 			args: args{
 				collector: "test-collector",
 				job:       "test-job",
-				cMap: map[string][]TargetItem{
+				cMap: map[string][]prehook.TargetItem{
 					"test-collectortest-job": {
-						TargetItem{
+						prehook.TargetItem{
 							JobName: "test-job",
 							Label: model.LabelSet{
 								"test-label": "test-value",
@@ -81,9 +83,9 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 			args: args{
 				collector: "test-collector",
 				job:       "test-job",
-				cMap: map[string][]TargetItem{
+				cMap: map[string][]prehook.TargetItem{
 					"test-collectortest-job": {
-						TargetItem{
+						prehook.TargetItem{
 							JobName: "test-job",
 							Label: model.LabelSet{
 								"test-label": "test-value",
@@ -93,7 +95,7 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 						},
 					},
 					"test-collectortest-job2": {
-						TargetItem{
+						prehook.TargetItem{
 							JobName: "test-job2",
 							Label: model.LabelSet{
 								"test-label": "test-value",
@@ -119,9 +121,9 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 			args: args{
 				collector: "test-collector",
 				job:       "test-job",
-				cMap: map[string][]TargetItem{
+				cMap: map[string][]prehook.TargetItem{
 					"test-collectortest-job": {
-						TargetItem{
+						prehook.TargetItem{
 							JobName: "test-job",
 							Label: model.LabelSet{
 								"test-label": "test-value",
@@ -132,7 +134,7 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 						},
 					},
 					"test-collectortest-job2": {
-						TargetItem{
+						prehook.TargetItem{
 							JobName: "test-job",
 							Label: model.LabelSet{
 								"test-label": "test-value",
@@ -165,9 +167,9 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 			args: args{
 				collector: "test-collector",
 				job:       "test-job",
-				cMap: map[string][]TargetItem{
+				cMap: map[string][]prehook.TargetItem{
 					"test-collectortest-job": {
-						TargetItem{
+						prehook.TargetItem{
 							JobName: "test-job",
 							Label: model.LabelSet{
 								"test-label": "test-value",
@@ -176,7 +178,7 @@ func TestGetAllTargetsByCollectorAndJob(t *testing.T) {
 							TargetURL:     "test-url",
 							CollectorName: "test-collector",
 						},
-						TargetItem{
+						prehook.TargetItem{
 							JobName: "test-job",
 							Label: model.LabelSet{
 								"test-label": "test-value",

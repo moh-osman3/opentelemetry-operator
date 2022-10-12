@@ -20,6 +20,7 @@ import (
 	"sync"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/diff"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
@@ -46,7 +47,7 @@ type leastWeightedAllocator struct {
 	// collectors is a map from a Collector's name to a Collector instance
 	collectors map[string]*Collector
 	// targetItems is a map from a target item's hash to the target items allocated state
-	targetItems map[string]*TargetItem
+	targetItems map[string]*prehook.TargetItem
 
 	log logr.Logger
 
@@ -54,10 +55,10 @@ type leastWeightedAllocator struct {
 }
 
 // TargetItems returns a shallow copy of the targetItems map.
-func (allocator *leastWeightedAllocator) TargetItems() map[string]*TargetItem {
+func (allocator *leastWeightedAllocator) TargetItems() map[string]*prehook.TargetItem {
 	allocator.m.RLock()
 	defer allocator.m.RUnlock()
-	targetItemsCopy := make(map[string]*TargetItem)
+	targetItemsCopy := make(map[string]*prehook.TargetItem)
 	for k, v := range allocator.targetItems {
 		targetItemsCopy[k] = v
 	}
@@ -96,11 +97,11 @@ func (allocator *leastWeightedAllocator) findNextCollector() *Collector {
 // This method is called from within SetTargets and SetCollectors, which acquire the needed lock.
 // This is only called after the collectors are cleared or when a new target has been found in the tempTargetMap.
 // INVARIANT: allocator.collectors must have at least 1 collector set.
-func (allocator *leastWeightedAllocator) addTargetToTargetItems(target *TargetItem) {
+func (allocator *leastWeightedAllocator) addTargetToTargetItems(target *prehook.TargetItem) {
 	chosenCollector := allocator.findNextCollector()
-	targetItem := &TargetItem{
+	targetItem := &prehook.TargetItem{
 		JobName:       target.JobName,
-		Link:          LinkJSON{Link: fmt.Sprintf("/jobs/%s/targets", url.QueryEscape(target.JobName))},
+		Link:          prehook.LinkJSON{Link: fmt.Sprintf("/jobs/%s/targets", url.QueryEscape(target.JobName))},
 		TargetURL:     target.TargetURL,
 		Label:         target.Label,
 		CollectorName: chosenCollector.Name,
@@ -113,7 +114,7 @@ func (allocator *leastWeightedAllocator) addTargetToTargetItems(target *TargetIt
 // handleTargets receives the new and removed targets and reconciles the current state.
 // Any removals are removed from the allocator's targetItems and unassigned from the corresponding collector.
 // Any net-new additions are assigned to the next available collector.
-func (allocator *leastWeightedAllocator) handleTargets(diff diff.Changes[*TargetItem]) {
+func (allocator *leastWeightedAllocator) handleTargets(diff diff.Changes[*prehook.TargetItem]) {
 	// Check for removals
 	for k, target := range allocator.targetItems {
 		// if the current target is in the removals list
@@ -162,19 +163,26 @@ func (allocator *leastWeightedAllocator) handleCollectors(diff diff.Changes[*Col
 // SetTargets accepts a list of targets that will be used to make
 // load balancing decisions. This method should be called when there are
 // new targets discovered or existing targets are shutdown.
-func (allocator *leastWeightedAllocator) SetTargets(targets map[string]*TargetItem) {
+func (allocator *leastWeightedAllocator) SetTargets(targets map[string]*prehook.TargetItem) {
 	timer := prometheus.NewTimer(TimeToAssign.WithLabelValues("SetTargets", leastWeightedStrategyName))
 	defer timer.ObserveDuration()
 
 	allocator.m.Lock()
 	defer allocator.m.Unlock()
 
+	var filteredTargets map[string]*prehook.TargetItem
+	if allocator.filterFunction != nil {
+		filteredTargets = allocator.filterFunction.Apply(targets)
+	} else {
+		filteredTargets = targets
+	}
+
 	if len(allocator.collectors) == 0 {
 		allocator.log.Info("No collector instances present, cannot set targets")
 		return
 	}
 	// Check for target changes
-	targetsDiff := diff.Maps(allocator.targetItems, targets)
+	targetsDiff := diff.Maps(allocator.targetItems, filteredTargets)
 	// If there are any additions or removals
 	if len(targetsDiff.Additions()) != 0 || len(targetsDiff.Removals()) != 0 {
 		allocator.handleTargets(targetsDiff)
@@ -208,7 +216,7 @@ func newLeastWeightedAllocator(log logr.Logger, filterFunction prehook.Hook) All
 	return &leastWeightedAllocator{
 		log:              log,
 		collectors:       make(map[string]*Collector),
-		targetItems:      make(map[string]*TargetItem),
-		filterFuction:    filterFunction,
+		targetItems:      make(map[string]*prehook.TargetItem),
+		filterFunction:    filterFunction,
 	}
 }

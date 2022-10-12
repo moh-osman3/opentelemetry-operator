@@ -24,6 +24,8 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 )
 
 var logger = logf.Log.WithName("unit-tests")
@@ -35,8 +37,8 @@ func colIndex(index, numCols int) int {
 	return index % numCols
 }
 
-func makeNNewTargets(n int, numCollectors int, startingIndex int) map[string]*TargetItem {
-	toReturn := map[string]*TargetItem{}
+func makeNNewTargets(n int, numCollectors int, startingIndex int) map[string]*prehook.TargetItem {
+	toReturn := map[string]*prehook.TargetItem{}
 	for i := startingIndex; i < n+startingIndex; i++ {
 		collector := fmt.Sprintf("collector-%d", colIndex(i, numCollectors))
 		label := model.LabelSet{
@@ -44,7 +46,7 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) map[string]*Ta
 			"i":         model.LabelValue(strconv.Itoa(i)),
 			"total":     model.LabelValue(strconv.Itoa(n + startingIndex)),
 		}
-		newTarget := NewTargetItem(fmt.Sprintf("test-job-%d", i), "test-url", label, collector)
+		newTarget := prehook.NewTargetItem(fmt.Sprintf("test-job-%d", i), "test-url", label, collector)
 		toReturn[newTarget.Hash()] = newTarget
 	}
 	return toReturn
@@ -63,7 +65,7 @@ func makeNCollectors(n int, startingIndex int) map[string]*Collector {
 }
 
 func TestSetCollectors(t *testing.T) {
-	s, _ := New("least-weighted", logger)
+	s, _ := New("least-weighted", logger, "")
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -79,7 +81,7 @@ func TestSetCollectors(t *testing.T) {
 
 func TestAddingAndRemovingTargets(t *testing.T) {
 	// prepare allocator with initial targets and collectors
-	s, _ := New("least-weighted", logger)
+	s, _ := New("least-weighted", logger, "")
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -114,7 +116,7 @@ func TestAddingAndRemovingTargets(t *testing.T) {
 // Tests that two targets with the same target url and job name but different label set are both added.
 func TestAllocationCollision(t *testing.T) {
 	// prepare allocator with initial targets and collectors
-	s, _ := New("least-weighted", logger)
+	s, _ := New("least-weighted", logger, "")
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -124,10 +126,10 @@ func TestAllocationCollision(t *testing.T) {
 	secondLabels := model.LabelSet{
 		"test": "test2",
 	}
-	firstTarget := NewTargetItem("sample-name", "0.0.0.0:8000", firstLabels, "")
-	secondTarget := NewTargetItem("sample-name", "0.0.0.0:8000", secondLabels, "")
+	firstTarget := prehook.NewTargetItem("sample-name", "0.0.0.0:8000", firstLabels, "")
+	secondTarget := prehook.NewTargetItem("sample-name", "0.0.0.0:8000", secondLabels, "")
 
-	targetList := map[string]*TargetItem{
+	targetList := map[string]*prehook.TargetItem{
 		firstTarget.Hash():  firstTarget,
 		secondTarget.Hash(): secondTarget,
 	}
@@ -148,7 +150,7 @@ func TestAllocationCollision(t *testing.T) {
 }
 
 func TestNoCollectorReassignment(t *testing.T) {
-	s, _ := New("least-weighted", logger)
+	s, _ := New("least-weighted", logger, "")
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)
@@ -179,7 +181,7 @@ func TestNoCollectorReassignment(t *testing.T) {
 }
 
 func TestSmartCollectorReassignment(t *testing.T) {
-	s, _ := New("least-weighted", logger)
+	s, _ := New("least-weighted", logger, "")
 
 	cols := makeNCollectors(4, 0)
 	s.SetCollectors(cols)
@@ -230,7 +232,7 @@ func TestSmartCollectorReassignment(t *testing.T) {
 func TestCollectorBalanceWhenAddingAndRemovingAtRandom(t *testing.T) {
 
 	// prepare allocator with 3 collectors and 'random' amount of targets
-	s, _ := New("least-weighted", logger)
+	s, _ := New("least-weighted", logger, "")
 
 	cols := makeNCollectors(3, 0)
 	s.SetCollectors(cols)

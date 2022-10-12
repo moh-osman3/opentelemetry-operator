@@ -1,16 +1,16 @@
-// Copyright The OpenTelemetry Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// // Copyright The OpenTelemetry Authors
+// //
+// // Licensed under the Apache License, Version 2.0 (the "License");
+// // you may not use this file except in compliance with the License.
+// // You may obtain a copy of the License at
+// //
+// //     http://www.apache.org/licenses/LICENSE-2.0
+// //
+// // Unless required by applicable law or agreed to in writing, software
+// // distributed under the License is distributed on an "AS IS" BASIS,
+// // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// // See the License for the specific language governing permissions and
+// // limitations under the License.
 
 package prehook
 
@@ -25,8 +25,6 @@ import (
 	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/stretchr/testify/assert"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
 )
 
 var (
@@ -124,9 +122,9 @@ func colIndex(index, numCols int) int {
 	return index % numCols
 }
 
-func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*allocation.TargetItem, int, map[string]*allocation.TargetItem) {
-	toReturn := map[string]*allocation.TargetItem{}
-	expectedMap := make(map[string]*allocation.TargetItem)
+func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*TargetItem, int, map[string]*TargetItem) {
+	toReturn := map[string]*TargetItem{}
+	expectedMap := make(map[string]*TargetItem)
 	numItemsRemaining := n
 	for i := startingIndex; i < n+startingIndex; i++ {
 		collector := fmt.Sprintf("collector-%d", colIndex(i, numCollectors))
@@ -135,7 +133,7 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*a
 			"i":         model.LabelValue(strconv.Itoa(i)),
 			"total":     model.LabelValue(strconv.Itoa(n + startingIndex)),
 		}
-		newTarget := allocation.NewTargetItem(fmt.Sprintf("test-job-%d", i), "test-url", label, collector)
+		newTarget := NewTargetItem(fmt.Sprintf("test-job-%d", i), "test-url", label, collector)
 		// add a single replace, drop, or keep action as relabel_config for targets
 		// index := rand.Intn(len(RelabelConfigs))
 		var index int
@@ -159,14 +157,11 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*a
 }
 
 func TestSetTargets(t *testing.T) {
-	allocator := mockAllocator{targetItems: make(map[string]*allocation.TargetItem)}
-	allocatorPrehook, err := New("relabel-config", logger, allocator)
+	allocatorPrehook, err := New("relabel-config", logger)
 	assert.Nil(t, err)
 
 	targets, numRemaining, expectedTargetMap := makeNNewTargets(numTargets, 3, 0)
-	allocatorPrehook.SetTargets(targets)
-	remainingTargetItems := allocatorPrehook.TargetItems()
+	remainingTargetItems := allocatorPrehook.Apply(targets)
 	assert.Len(t, remainingTargetItems, numRemaining)
-	assert.Equal(t, remainingTargetItems, allocator.TargetItems())
 	assert.Equal(t, remainingTargetItems, expectedTargetMap)
 }

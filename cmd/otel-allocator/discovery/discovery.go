@@ -27,6 +27,7 @@ import (
 	"github.com/prometheus/prometheus/model/relabel"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 	allocatorWatcher "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/watcher"
 )
 
@@ -96,7 +97,7 @@ func (m *Manager) CreateRelabelConfigsMap() map[string][]*relabel.Config {
 	return relabelConfigs
 }
 
-func (m *Manager) Watch(fn func(targets map[string]*allocation.TargetItem)) {
+func (m *Manager) Watch(fn func(targets map[string]*prehook.TargetItem)) {
 	log := m.log.WithValues("component", "opentelemetry-targetallocator")
 
 	go func() {
@@ -106,14 +107,14 @@ func (m *Manager) Watch(fn func(targets map[string]*allocation.TargetItem)) {
 				log.Info("Service Discovery watch event stopped: discovery manager closed")
 				return
 			case tsets := <-m.manager.SyncCh():
-				targets := map[string]*allocation.TargetItem{}
+				targets := map[string]*prehook.TargetItem{}
 				relabelConfigs := m.CreateRelabelConfigsMap()
 				for jobName, tgs := range tsets {
 					var count float64 = 0
 					for _, tg := range tgs {
 						for _, t := range tg.Targets {
 							count++
-							item := &allocation.TargetItem{
+							item := &prehook.TargetItem{
 								JobName:        jobName,
 								TargetURL:      string(t[model.AddressLabel]),
 								Label:          t.Merge(tg.Labels),

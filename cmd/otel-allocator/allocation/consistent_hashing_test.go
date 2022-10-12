@@ -18,11 +18,23 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 )
+
+var _ prehook.Hook = &mockHook{}
+
+type mockHook struct {
+}
+
+func (allocator mockHook) Apply(targets map[string]*prehook.TargetItem) map[string]*prehook.TargetItem {
+	return targets
+}
 
 func TestCanSetSingleTarget(t *testing.T) {
 	cols := makeNCollectors(3, 0)
-	c := newConsistentHashingAllocator(logger)
+	hook := mockHook{}
+	c := newConsistentHashingAllocator(logger, hook)
 	c.SetCollectors(cols)
 	c.SetTargets(makeNNewTargets(1, 3, 0))
 	actualTargetItems := c.TargetItems()
@@ -38,7 +50,8 @@ func TestRelativelyEvenDistribution(t *testing.T) {
 	cols := makeNCollectors(numCols, 0)
 	var expectedPerCollector = float64(numItems / numCols)
 	expectedDelta := (expectedPerCollector * 1.5) - expectedPerCollector
-	c := newConsistentHashingAllocator(logger)
+	hook := mockHook{}
+	c := newConsistentHashingAllocator(logger, hook)
 	c.SetCollectors(cols)
 	c.SetTargets(makeNNewTargets(numItems, 0, 0))
 	actualTargetItems := c.TargetItems()
@@ -53,7 +66,8 @@ func TestRelativelyEvenDistribution(t *testing.T) {
 
 func TestFullReallocation(t *testing.T) {
 	cols := makeNCollectors(10, 0)
-	c := newConsistentHashingAllocator(logger)
+	hook := mockHook{}
+	c := newConsistentHashingAllocator(logger, hook)
 	c.SetCollectors(cols)
 	c.SetTargets(makeNNewTargets(10000, 10, 0))
 	actualTargetItems := c.TargetItems()
@@ -78,7 +92,8 @@ func TestNumRemapped(t *testing.T) {
 	numFinalCols := 16
 	expectedDelta := float64((numFinalCols - numInitialCols) * (numItems / numFinalCols))
 	cols := makeNCollectors(numInitialCols, 0)
-	c := newConsistentHashingAllocator(logger)
+	hook := mockHook{}
+	c := newConsistentHashingAllocator(logger, hook)
 	c.SetCollectors(cols)
 	c.SetTargets(makeNNewTargets(numItems, numInitialCols, 0))
 	actualTargetItems := c.TargetItems()

@@ -19,14 +19,10 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/model/relabel"
-
-	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
-	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 )
 
 type RelabelConfigTargetFilter struct {
 	log        logr.Logger
-	filterFunc FilterFunc
 }
 
 func NewRelabelConfigTargetFilter(log logr.Logger) Hook {
@@ -47,7 +43,7 @@ func ConvertLabelToPromLabelSet(lbls model.LabelSet) []labels.Label {
 	return newLabels
 }
 
-func (tf *RelabelConfigTargetFilter) Apply(targets map[string]*allocation.TargetItem) map[string]*allocation.TargetItem {
+func (tf *RelabelConfigTargetFilter) Apply(targets map[string]*TargetItem) map[string]*TargetItem {
 	numTargets := len(targets)
 	numRemainingTargets := numTargets
 	for jobName, tItem := range targets {
@@ -70,6 +66,7 @@ func (tf *RelabelConfigTargetFilter) Apply(targets map[string]*allocation.Target
 
 	// tf.allocator.SetTargets(targets)
 	tf.log.V(2).Info("Filtering complete", "seen", numTargets, "kept", numRemainingTargets)
+	return targets
 }
 
 func init() {

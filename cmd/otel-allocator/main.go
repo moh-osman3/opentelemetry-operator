@@ -238,9 +238,9 @@ func (s *server) ScrapeConfigsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) JobHandler(w http.ResponseWriter, r *http.Request) {
-	displayData := make(map[string]allocation.LinkJSON)
+	displayData := make(map[string]prehook.LinkJSON)
 	for _, v := range s.allocator.TargetItems() {
-		displayData[v.JobName] = allocation.LinkJSON{Link: v.Link.Link}
+		displayData[v.JobName] = prehook.LinkJSON{Link: v.Link.Link}
 	}
 	s.jsonHandler(w, displayData)
 }

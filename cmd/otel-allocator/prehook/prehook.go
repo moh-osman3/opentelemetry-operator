@@ -17,37 +17,55 @@ package prehook
 import (
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/go-logr/logr"
-
-	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/relabel"
 )
 
 const (
-	noOpTargetFilterName          = "no-op"
 	relabelConfigTargetFilterName = "relabel-config"
 )
 
+type LinkJSON struct {
+	Link string `json:"_link"`
+}
 
+type TargetItem struct {
+	JobName        string
+	Link           LinkJSON
+	TargetURL      string
+	Label          model.LabelSet
+	CollectorName  string
+	RelabelConfigs []*relabel.Config
+}
+
+func (t TargetItem) Hash() string {
+	return t.JobName + t.TargetURL + t.Label.Fingerprint().String()
+}
+
+func NewTargetItem(jobName string, targetURL string, label model.LabelSet, collectorName string) *TargetItem {
+	return &TargetItem{
+		JobName:       jobName,
+		Link:          LinkJSON{fmt.Sprintf("/jobs/%s/targets", url.QueryEscape(jobName))},
+		TargetURL:     targetURL,
+		Label:         label,
+		CollectorName: collectorName,
+	}
+}
 type Hook interface {
-	Apply(map[string]*allocation.TargetItem) map[string]*allocation.TargetItem
+	Apply(map[string]*TargetItem) map[string]*TargetItem
 	//SetConfig()
 }
 
-type FilterFunc func(map[string]*allocation.TargetItem) map[string]*allocation.TargetItem
+type FilterFunc func(map[string]*TargetItem) map[string]*TargetItem
 
-func (ff FilterFunc) Apply(in map[string]*allocation.TargetItem) map[string]*allocation.TargetItem {
+func (ff FilterFunc) Apply(in map[string]*TargetItem) map[string]*TargetItem {
   return ff(in)
 }
 
 type HookProvider func(log logr.Logger) Hook
-
-
-
-
-
-
-// type Provider func(log logr.Logger, allocator allocation.Allocator) Hook
 
 var (
 	registry = map[string]HookProvider{}

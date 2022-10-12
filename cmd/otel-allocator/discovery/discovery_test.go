@@ -30,6 +30,7 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/allocation"
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/config"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 	allocatorWatcher "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/watcher"
 )
 
@@ -47,7 +48,7 @@ func TestMain(m *testing.M) {
 	manager = NewManager(ctrl.Log.WithName("test"), context.Background(), gokitlog.NewNopLogger())
 
 	results = make(chan []string)
-	manager.Watch(func(targets map[string]*allocation.TargetItem) {
+	manager.Watch(func(targets map[string]*prehook.TargetItem) {
 		var result []string
 		for _, t := range targets {
 			result = append(result, t.TargetURL)
