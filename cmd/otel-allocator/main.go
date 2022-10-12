@@ -100,7 +100,7 @@ func main() {
 	discoveryManager := lbdiscovery.NewManager(log, ctx, gokitlog.NewNopLogger())
 	defer discoveryManager.Close()
 
-	discoveryManager.Watch(allocatorPrehook.SetTargets)
+	discoveryManager.Watch(allocator.SetTargets)
 
 	k8sclient, err := configureFileDiscovery(log, allocator, discoveryManager, context.Background(), cliConf)
 	if err != nil {
@@ -259,7 +259,7 @@ func (s *server) PrometheusMiddleware(next http.Handler) http.Handler {
 func (s *server) TargetsHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()["collector_id"]
 
-	var compareMap = make(map[string][]allocation.TargetItem) // CollectorName+jobName -> TargetItem
+	var compareMap = make(map[string][]prehook.TargetItem) // CollectorName+jobName -> TargetItem
 	for _, v := range s.allocator.TargetItems() {
 		compareMap[v.CollectorName+v.JobName] = append(compareMap[v.CollectorName+v.JobName], *v)
 	}

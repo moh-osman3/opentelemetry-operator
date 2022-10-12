@@ -17,13 +17,11 @@ package allocation
 import (
 	"errors"
 	"fmt"
-	"net/url"
 
 	"github.com/buraksezer/consistent"
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/common/model"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 )
