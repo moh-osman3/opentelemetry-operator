@@ -49,6 +49,8 @@ type leastWeightedAllocator struct {
 	targetItems map[string]*TargetItem
 
 	log logr.Logger
+
+	filterFunction prehook.Hook
 }
 
 // TargetItems returns a shallow copy of the targetItems map.
@@ -202,10 +204,11 @@ func (allocator *leastWeightedAllocator) SetCollectors(collectors map[string]*Co
 	}
 }
 
-func newLeastWeightedAllocator(log logr.Logger) Allocator {
+func newLeastWeightedAllocator(log logr.Logger, filterFunction prehook.Hook) Allocator {
 	return &leastWeightedAllocator{
-		log:         log,
-		collectors:  make(map[string]*Collector),
-		targetItems: make(map[string]*TargetItem),
+		log:              log,
+		collectors:       make(map[string]*Collector),
+		targetItems:      make(map[string]*TargetItem),
+		filterFuction:    filterFunction,
 	}
 }

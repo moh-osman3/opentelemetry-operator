@@ -56,7 +56,7 @@ func (c Config) GetTargetsFilterStrategy() string {
 	if c.FilterStrategy != nil {
 		return *c.FilterStrategy
 	}
-	return "no-op"
+	return nil 
 }
 
 type PrometheusCRWatcherConfig struct {

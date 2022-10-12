@@ -25,6 +25,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/diff"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 )
 
 var _ Allocator = &consistentHashingAllocator{}
@@ -50,9 +51,11 @@ type consistentHashingAllocator struct {
 	targetItems map[string]*TargetItem
 
 	log logr.Logger
+
+	filterFunction prehook.Hook
 }
 
-func newConsistentHashingAllocator(log logr.Logger) Allocator {
+func newConsistentHashingAllocator(log logr.Logger, filterFunction prehook.Hook) Allocator {
 	config := consistent.Config{
 		PartitionCount:    1061,
 		ReplicationFactor: 5,
@@ -65,6 +68,7 @@ func newConsistentHashingAllocator(log logr.Logger) Allocator {
 		collectors:       make(map[string]*Collector),
 		targetItems:      make(map[string]*TargetItem),
 		log:              log,
+		filterFuction:    filterFunction,
 	}
 }
 
@@ -116,6 +120,8 @@ func (c *consistentHashingAllocator) handleTargets(diff diff.Changes[*TargetItem
 			c.addTargetToTargetItems(target)
 		}
 	}
+
+	c.log.Info("targets handled successfully")
 }
 
 // handleCollectors receives the new and removed collectors and reconciles the current state.
@@ -128,6 +134,7 @@ func (c *consistentHashingAllocator) handleCollectors(diff diff.Changes[*Collect
 		c.consistentHasher.Remove(k.Name)
 		TargetsPerCollector.WithLabelValues(k.Name, consistentHashingStrategyName).Set(0)
 	}
+	c.log.Info(fmt.Sprintf("dropping %d collectors from collector list", len(diff.Removals())))
 	// Insert the new collectors
 	for _, i := range diff.Additions() {
 		c.collectors[i.Name] = NewCollector(i.Name)
@@ -149,6 +156,13 @@ func (c *consistentHashingAllocator) SetTargets(targets map[string]*TargetItem) 
 
 	c.m.Lock()
 	defer c.m.Unlock()
+
+	var filteredTargets map[string]*TargetItem
+	if c.filterFunction != nil {
+		filteredTargets = c.filterFunction.Apply(targets)
+	} else {
+		filteredTargets = targets
+	}
 
 	if len(c.collectors) == 0 {
 		c.log.Info("No collector instances present, cannot set targets")
@@ -180,6 +194,8 @@ func (c *consistentHashingAllocator) SetCollectors(collectors map[string]*Collec
 
 	// Check for collector changes
 	collectorsDiff := diff.Maps(c.collectors, collectors)
+	c.log.Info(fmt.Sprintf("The number of collectors to be added is: %d", len(collectorsDiff.Additions())))
+	c.log.Info(fmt.Sprintf("The number of collectors to be removed is: %d", len(collectorsDiff.Removals())))
 	if len(collectorsDiff.Additions()) != 0 || len(collectorsDiff.Removals()) != 0 {
 		c.handleCollectors(collectorsDiff)
 	}

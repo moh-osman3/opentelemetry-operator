@@ -39,7 +39,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/collector"
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/config"
 	lbdiscovery "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/discovery"
-	prehook "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 	allocatorWatcher "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/watcher"
 )
 
@@ -72,13 +72,13 @@ func main() {
 
 	log := ctrl.Log.WithName("allocator")
 
-	allocator, err := allocation.New(cfg.GetAllocationStrategy(), log)
+	allocator, err := allocation.New(cfg.GetAllocationStrategy(), log, cfg.GetTargetsFilterStrategy())
 	if err != nil {
 		setupLog.Error(err, "Unable to initialize allocation strategy")
 		os.Exit(1)
 	}
 
-	allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log, allocator)
+	// allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log, allocator)
 	if err != nil {
 		setupLog.Error(err, "Unable to initialize targets filter strategy")
 		os.Exit(1)

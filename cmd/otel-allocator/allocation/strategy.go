@@ -25,9 +25,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/relabel"
+
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
 )
 
-type AllocatorProvider func(log logr.Logger) Allocator
+type AllocatorProvider func(log logr.Logger, hook prehook.Hook) Allocator
 
 var (
 	registry = map[string]AllocatorProvider{}
@@ -48,9 +50,15 @@ var (
 	}, []string{"method", "strategy"})
 )
 
-func New(name string, log logr.Logger) (Allocator, error) {
+func New(name string, log logr.Logger, filter string) (Allocator, error) {
+	hook, err := prehook.New(filter, log)
+
+	if err != nil {
+		log.Info("Filter strategy is invalid or not found")
+	}
+
 	if p, ok := registry[name]; ok {
-		return p(log), nil
+		return p(log, hook), nil
 	}
 	return nil, fmt.Errorf("unregistered strategy: %s", name)
 }
