@@ -14,7 +14,6 @@
 
 package targetscommon
 
-
 import (
 	"fmt"
 	"net/url"
@@ -23,7 +22,7 @@ import (
 )
 
 // This package contains structs and methods used by multiple packages in cmd/otel-allocator
-// This package is useful to resolve any cyclical dependencies by adding common objects
+// This package is useful to resolve any cyclical dependencies by adding common objects.
 type LinkJSON struct {
 	Link string `json:"_link"`
 }

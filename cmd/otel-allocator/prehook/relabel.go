@@ -34,12 +34,12 @@ type RelabelConfigTargetFilter struct {
 
 func NewRelabelConfigTargetFilter(log logr.Logger) Hook {
 	return &RelabelConfigTargetFilter{
-		log:             log,
-		relabelCfg:      make(map[string][]*relabel.Config),
+		log:        log,
+		relabelCfg: make(map[string][]*relabel.Config),
 	}
 }
 
-// helper function converts from model.LabelSet to []labels.Label
+// helper function converts from model.LabelSet to []labels.Label.
 func ConvertLabelToPromLabelSet(lbls model.LabelSet) []labels.Label {
 	newLabels := make([]labels.Label, len(lbls))
 	index := 0

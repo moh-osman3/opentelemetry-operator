@@ -34,7 +34,6 @@ func (allocator mockHook) Apply(targets map[string]*targetscommon.TargetItem) ma
 }
 
 func (allocator mockHook) SetConfig(map[string]*config.Config) {
-	return
 }
 
 func TestCanSetSingleTarget(t *testing.T) {

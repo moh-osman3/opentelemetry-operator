@@ -33,12 +33,6 @@ type Hook interface {
 	SetConfig(map[string]*config.Config)
 }
 
-type FilterFunc func(map[string]*targetscommon.TargetItem) map[string]*targetscommon.TargetItem
-
-func (ff FilterFunc) Apply(in map[string]*targetscommon.TargetItem) map[string]*targetscommon.TargetItem {
-  return ff(in)
-}
-
 type HookProvider func(log logr.Logger) Hook
 
 var (
