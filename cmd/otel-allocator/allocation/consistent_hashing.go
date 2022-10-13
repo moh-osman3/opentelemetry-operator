@@ -69,7 +69,7 @@ func newConsistentHashingAllocator(log logr.Logger, filterFunction prehook.Hook)
 		collectors:       make(map[string]*Collector),
 		targetItems:      make(map[string]*targetscommon.TargetItem),
 		log:              log,
-		filterFunction:    filterFunction,
+		filterFunction:   filterFunction,
 	}
 }
 

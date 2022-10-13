@@ -178,7 +178,7 @@ func CreateMockConfig(cfgMap map[string][]*relabel.Config) map[string]*config.Co
 	index := 0
 	for job, rc := range cfgMap {
 		sc[index] = &config.ScrapeConfig{
-			JobName: job,
+			JobName:        job,
 			RelabelConfigs: rc,
 		}
 		index++
