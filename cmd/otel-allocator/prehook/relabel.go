@@ -43,7 +43,7 @@ func NewRelabelConfigTargetFilter(log logr.Logger) Hook {
 func ConvertLabelToPromLabelSet(lbls model.LabelSet) []labels.Label {
 	newLabels := make([]labels.Label, len(lbls))
 	index := 0
-	for k,v := range lbls {
+	for k, v := range lbls {
 		newLabels[index].Name = string(k)
 		newLabels[index].Value = string(v)
 		index++

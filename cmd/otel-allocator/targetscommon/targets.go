@@ -28,11 +28,11 @@ type LinkJSON struct {
 }
 
 type TargetItem struct {
-	JobName        string
-	Link           LinkJSON
-	TargetURL      string
-	Label          model.LabelSet
-	CollectorName  string
+	JobName       string
+	Link          LinkJSON
+	TargetURL     string
+	Label         model.LabelSet
+	CollectorName string
 }
 
 func (t TargetItem) Hash() string {
