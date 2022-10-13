@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 )
 
 var logger = logf.Log.WithName("unit-tests")
@@ -37,8 +37,8 @@ func colIndex(index, numCols int) int {
 	return index % numCols
 }
 
-func makeNNewTargets(n int, numCollectors int, startingIndex int) map[string]*prehook.TargetItem {
-	toReturn := map[string]*prehook.TargetItem{}
+func makeNNewTargets(n int, numCollectors int, startingIndex int) map[string]*targetscommon.TargetItem {
+	toReturn := map[string]*targetscommon.TargetItem{}
 	for i := startingIndex; i < n+startingIndex; i++ {
 		collector := fmt.Sprintf("collector-%d", colIndex(i, numCollectors))
 		label := model.LabelSet{
@@ -46,7 +46,7 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) map[string]*pr
 			"i":         model.LabelValue(strconv.Itoa(i)),
 			"total":     model.LabelValue(strconv.Itoa(n + startingIndex)),
 		}
-		newTarget := prehook.NewTargetItem(fmt.Sprintf("test-job-%d", i), "test-url", label, collector)
+		newTarget := targetscommon.NewTargetItem(fmt.Sprintf("test-job-%d", i), "test-url", label, collector)
 		toReturn[newTarget.Hash()] = newTarget
 	}
 	return toReturn
@@ -126,10 +126,10 @@ func TestAllocationCollision(t *testing.T) {
 	secondLabels := model.LabelSet{
 		"test": "test2",
 	}
-	firstTarget := prehook.NewTargetItem("sample-name", "0.0.0.0:8000", firstLabels, "")
-	secondTarget := prehook.NewTargetItem("sample-name", "0.0.0.0:8000", secondLabels, "")
+	firstTarget := targetscommon.NewTargetItem("sample-name", "0.0.0.0:8000", firstLabels, "")
+	secondTarget := targetscommon.NewTargetItem("sample-name", "0.0.0.0:8000", secondLabels, "")
 
-	targetList := map[string]*prehook.TargetItem{
+	targetList := map[string]*targetscommon.TargetItem{
 		firstTarget.Hash():  firstTarget,
 		secondTarget.Hash(): secondTarget,
 	}

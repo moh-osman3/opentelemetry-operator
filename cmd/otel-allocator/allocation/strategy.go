@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 )
 
 type AllocatorProvider func(log logr.Logger, hook prehook.Hook) Allocator
@@ -64,8 +65,8 @@ func Register(name string, provider AllocatorProvider) error {
 
 type Allocator interface {
 	SetCollectors(collectors map[string]*Collector)
-	SetTargets(targets map[string]*prehook.TargetItem)
-	TargetItems() map[string]*prehook.TargetItem
+	SetTargets(targets map[string]*targetscommon.TargetItem)
+	TargetItems() map[string]*targetscommon.TargetItem
 	Collectors() map[string]*Collector
 }
 

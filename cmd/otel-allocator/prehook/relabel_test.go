@@ -1,16 +1,16 @@
-// // Copyright The OpenTelemetry Authors
-// //
-// // Licensed under the Apache License, Version 2.0 (the "License");
-// // you may not use this file except in compliance with the License.
-// // You may obtain a copy of the License at
-// //
-// //     http://www.apache.org/licenses/LICENSE-2.0
-// //
-// // Unless required by applicable law or agreed to in writing, software
-// // distributed under the License is distributed on an "AS IS" BASIS,
-// // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// // See the License for the specific language governing permissions and
-// // limitations under the License.
+// Copyright The OpenTelemetry Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package prehook
 
@@ -22,9 +22,12 @@ import (
 	"testing"
 
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/model/relabel"
 	"github.com/stretchr/testify/assert"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 )
 
 var (
@@ -122,10 +125,11 @@ func colIndex(index, numCols int) int {
 	return index % numCols
 }
 
-func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*TargetItem, int, map[string]*TargetItem) {
-	toReturn := map[string]*TargetItem{}
-	expectedMap := make(map[string]*TargetItem)
+func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*targetscommon.TargetItem, int, map[string]*targetscommon.TargetItem, map[string][]*relabel.Config) {
+	toReturn := map[string]*targetscommon.TargetItem{}
+	expectedMap := make(map[string]*targetscommon.TargetItem)
 	numItemsRemaining := n
+	relabelConfig := make(map[string][]*relabel.Config)
 	for i := startingIndex; i < n+startingIndex; i++ {
 		collector := fmt.Sprintf("collector-%d", colIndex(i, numCollectors))
 		label := model.LabelSet{
@@ -133,7 +137,8 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*T
 			"i":         model.LabelValue(strconv.Itoa(i)),
 			"total":     model.LabelValue(strconv.Itoa(n + startingIndex)),
 		}
-		newTarget := NewTargetItem(fmt.Sprintf("test-job-%d", i), "test-url", label, collector)
+		jobName := fmt.Sprintf("test-job-%d", i)
+		newTarget := targetscommon.NewTargetItem(jobName, "test-url", label, collector)
 		// add a single replace, drop, or keep action as relabel_config for targets
 		// index := rand.Intn(len(RelabelConfigs))
 		var index int
@@ -141,7 +146,7 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*T
 
 		index = int(ind.Int64())
 
-		newTarget.RelabelConfigs = []*relabel.Config{
+		relabelConfig[jobName] = []*relabel.Config{
 			&RelabelConfigs[index].cfg,
 		}
 
@@ -153,15 +158,37 @@ func makeNNewTargets(n int, numCollectors int, startingIndex int) (map[string]*T
 		}
 		toReturn[targetKey] = newTarget
 	}
-	return toReturn, numItemsRemaining, expectedMap
+	return toReturn, numItemsRemaining, expectedMap, relabelConfig
 }
 
-func TestSetTargets(t *testing.T) {
+func TestApply(t *testing.T) {
 	allocatorPrehook, err := New("relabel-config", logger)
 	assert.Nil(t, err)
 
-	targets, numRemaining, expectedTargetMap := makeNNewTargets(numTargets, 3, 0)
+	targets, numRemaining, expectedTargetMap, relabelCfg := makeNNewTargets(numTargets, 3, 0)
+	cfg := CreateMockConfig(relabelCfg)
+	allocatorPrehook.SetConfig(cfg)
 	remainingTargetItems := allocatorPrehook.Apply(targets)
 	assert.Len(t, remainingTargetItems, numRemaining)
 	assert.Equal(t, remainingTargetItems, expectedTargetMap)
+}
+
+func CreateMockConfig(cfgMap map[string][]*relabel.Config) map[string]*config.Config {
+	sc := make([]*config.ScrapeConfig, len(cfgMap))
+	index := 0
+	for job, rc := range cfgMap {
+		sc[index] = &config.ScrapeConfig{
+			JobName: job,
+			RelabelConfigs: rc,
+		}
+		index++
+	}
+
+	cfgValue := &config.Config{
+		ScrapeConfigs: sc,
+	}
+
+	ret := make(map[string]*config.Config)
+	ret["test"] = cfgValue
+	return ret
 }

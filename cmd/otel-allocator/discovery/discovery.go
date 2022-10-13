@@ -24,9 +24,9 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/discovery"
-	"github.com/prometheus/prometheus/model/relabel"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 	allocatorWatcher "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/watcher"
 )
 
@@ -43,9 +43,10 @@ type Manager struct {
 	logger     log.Logger
 	close      chan struct{}
 	configsMap map[allocatorWatcher.EventSource]*config.Config
+	hook       prehook.Hook
 }
 
-func NewManager(log logr.Logger, ctx context.Context, logger log.Logger, options ...func(*discovery.Manager)) *Manager {
+func NewManager(log logr.Logger, ctx context.Context, logger log.Logger, hook prehook.Hook, options ...func(*discovery.Manager)) *Manager {
 	manager := discovery.NewManager(ctx, logger, options...)
 
 	go func() {
@@ -59,6 +60,7 @@ func NewManager(log logr.Logger, ctx context.Context, logger log.Logger, options
 		logger:     logger,
 		close:      make(chan struct{}),
 		configsMap: make(map[allocatorWatcher.EventSource]*config.Config),
+		hook:       hook,
 	}
 }
 
@@ -82,22 +84,18 @@ func (m *Manager) ApplyConfig(source allocatorWatcher.EventSource, cfg *config.C
 			discoveryCfg[scrapeConfig.JobName] = scrapeConfig.ServiceDiscoveryConfigs
 		}
 	}
-	// m.Hook.Apply -> goal of this 
+
+	cfgMaps := make(map[string]*config.Config)
+	for key, value := range m.configsMap {
+		cfgMaps[key.String()] = value
+	}
+	if m.hook != nil {
+		m.hook.SetConfig(cfgMaps)
+	}
 	return m.manager.ApplyConfig(discoveryCfg)
 }
 
-func (m *Manager) CreateRelabelConfigsMap() map[string][]*relabel.Config {
-	relabelConfigs := make(map[string][]*relabel.Config)
-	for _, value := range m.configsMap {
-		for _, scrapeConfig := range value.ScrapeConfigs {
-			relabelConfigs[scrapeConfig.JobName] = scrapeConfig.RelabelConfigs
-		}
-	}
-
-	return relabelConfigs
-}
-
-func (m *Manager) Watch(fn func(targets map[string]*prehook.TargetItem)) {
+func (m *Manager) Watch(fn func(targets map[string]*targetscommon.TargetItem)) {
 	log := m.log.WithValues("component", "opentelemetry-targetallocator")
 
 	go func() {
@@ -107,18 +105,16 @@ func (m *Manager) Watch(fn func(targets map[string]*prehook.TargetItem)) {
 				log.Info("Service Discovery watch event stopped: discovery manager closed")
 				return
 			case tsets := <-m.manager.SyncCh():
-				targets := map[string]*prehook.TargetItem{}
-				relabelConfigs := m.CreateRelabelConfigsMap()
+				targets := map[string]*targetscommon.TargetItem{}
 				for jobName, tgs := range tsets {
 					var count float64 = 0
 					for _, tg := range tgs {
 						for _, t := range tg.Targets {
 							count++
-							item := &prehook.TargetItem{
+							item := &targetscommon.TargetItem{
 								JobName:        jobName,
 								TargetURL:      string(t[model.AddressLabel]),
 								Label:          t.Merge(tg.Labels),
-								RelabelConfigs: relabelConfigs[jobName],
 							}
 							targets[item.Hash()] = item
 						}

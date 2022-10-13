@@ -17,51 +17,25 @@ package prehook
 import (
 	"errors"
 	"fmt"
-	"net/url"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/model/relabel"
+	"github.com/prometheus/prometheus/config"
+
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 )
 
 const (
 	relabelConfigTargetFilterName = "relabel-config"
 )
 
-type LinkJSON struct {
-	Link string `json:"_link"`
-}
-
-type TargetItem struct {
-	JobName        string
-	Link           LinkJSON
-	TargetURL      string
-	Label          model.LabelSet
-	CollectorName  string
-	RelabelConfigs []*relabel.Config
-}
-
-func (t TargetItem) Hash() string {
-	return t.JobName + t.TargetURL + t.Label.Fingerprint().String()
-}
-
-func NewTargetItem(jobName string, targetURL string, label model.LabelSet, collectorName string) *TargetItem {
-	return &TargetItem{
-		JobName:       jobName,
-		Link:          LinkJSON{fmt.Sprintf("/jobs/%s/targets", url.QueryEscape(jobName))},
-		TargetURL:     targetURL,
-		Label:         label,
-		CollectorName: collectorName,
-	}
-}
 type Hook interface {
-	Apply(map[string]*TargetItem) map[string]*TargetItem
-	//SetConfig()
+	Apply(map[string]*targetscommon.TargetItem) map[string]*targetscommon.TargetItem
+	SetConfig(map[string]*config.Config)
 }
 
-type FilterFunc func(map[string]*TargetItem) map[string]*TargetItem
+type FilterFunc func(map[string]*targetscommon.TargetItem) map[string]*targetscommon.TargetItem
 
-func (ff FilterFunc) Apply(in map[string]*TargetItem) map[string]*TargetItem {
+func (ff FilterFunc) Apply(in map[string]*targetscommon.TargetItem) map[string]*targetscommon.TargetItem {
   return ff(in)
 }
 

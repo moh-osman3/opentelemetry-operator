@@ -18,8 +18,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/prometheus/prometheus/config"
 
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 )
 
 var _ prehook.Hook = &mockHook{}
@@ -27,8 +29,12 @@ var _ prehook.Hook = &mockHook{}
 type mockHook struct {
 }
 
-func (allocator mockHook) Apply(targets map[string]*prehook.TargetItem) map[string]*prehook.TargetItem {
+func (allocator mockHook) Apply(targets map[string]*targetscommon.TargetItem) map[string]*targetscommon.TargetItem {
 	return targets
+}
+
+func (allocator mockHook) SetConfig(map[string]*config.Config) {
+	return
 }
 
 func TestCanSetSingleTarget(t *testing.T) {

@@ -15,19 +15,27 @@
 package prehook
 
 import (
+	"sync"
+
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/model/relabel"
+
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 )
 
 type RelabelConfigTargetFilter struct {
+	m          sync.RWMutex
 	log        logr.Logger
+	relabelCfg map[string][]*relabel.Config
 }
 
 func NewRelabelConfigTargetFilter(log logr.Logger) Hook {
 	return &RelabelConfigTargetFilter{
 		log:             log,
+		relabelCfg:      make(map[string][]*relabel.Config),
 	}
 }
 
@@ -43,13 +51,14 @@ func ConvertLabelToPromLabelSet(lbls model.LabelSet) []labels.Label {
 	return newLabels
 }
 
-func (tf *RelabelConfigTargetFilter) Apply(targets map[string]*TargetItem) map[string]*TargetItem {
+func (tf *RelabelConfigTargetFilter) Apply(targets map[string]*targetscommon.TargetItem) map[string]*targetscommon.TargetItem {
 	numTargets := len(targets)
 	numRemainingTargets := numTargets
-	for jobName, tItem := range targets {
+	// Note: jobNameKey != tItem.JobName (jobNameKey is hashed)
+	for jobNameKey, tItem := range targets {
 		keepTarget := true
 		lset := ConvertLabelToPromLabelSet(tItem.Label)
-		for _, cfg := range tItem.RelabelConfigs {
+		for _, cfg := range tf.relabelCfg[tItem.JobName] {
 			if new_lset := relabel.Process(lset, cfg); new_lset == nil {
 				keepTarget = false
 				break // inner loop
@@ -59,14 +68,23 @@ func (tf *RelabelConfigTargetFilter) Apply(targets map[string]*TargetItem) map[s
 		}
 
 		if !keepTarget {
-			delete(targets, jobName)
+			delete(targets, jobNameKey)
 			numRemainingTargets--
 		}
 	}
 
-	// tf.allocator.SetTargets(targets)
 	tf.log.V(2).Info("Filtering complete", "seen", numTargets, "kept", numRemainingTargets)
 	return targets
+}
+
+func (tf *RelabelConfigTargetFilter) SetConfig(cfgs map[string]*config.Config) {
+	tf.m.Lock()
+	defer tf.m.Unlock()
+	for _, value := range cfgs {
+		for _, scrapeConfig := range value.ScrapeConfigs {
+			tf.relabelCfg[scrapeConfig.JobName] = scrapeConfig.RelabelConfigs
+		}
+	}
 }
 
 func init() {

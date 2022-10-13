@@ -40,6 +40,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/config"
 	lbdiscovery "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/discovery"
 	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 	allocatorWatcher "github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/watcher"
 )
 
@@ -72,10 +73,11 @@ func main() {
 
 	log := ctrl.Log.WithName("allocator")
 
+	// allocatorPrehook will be nil if filterStrategy is not set or
+	// unrecognized. This means no filtering will be used.
 	allocatorPrehook, err := prehook.New(cfg.GetTargetsFilterStrategy(), log)
 	if err != nil {
-		setupLog.Error(err, "Unable to initialize targets filter strategy")
-		os.Exit(1)
+		setupLog.Error(err, "Unrecognized filter strategy; filtering disabled")
 	}
 
 	allocator, err := allocation.New(cfg.GetAllocationStrategy(), log, allocatorPrehook)
@@ -97,7 +99,7 @@ func main() {
 	}()
 
 	// creates a new discovery manager
-	discoveryManager := lbdiscovery.NewManager(log, ctx, gokitlog.NewNopLogger())
+	discoveryManager := lbdiscovery.NewManager(log, ctx, gokitlog.NewNopLogger(), allocatorPrehook)
 	defer discoveryManager.Close()
 
 	discoveryManager.Watch(allocator.SetTargets)
@@ -238,9 +240,9 @@ func (s *server) ScrapeConfigsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) JobHandler(w http.ResponseWriter, r *http.Request) {
-	displayData := make(map[string]prehook.LinkJSON)
+	displayData := make(map[string]targetscommon.LinkJSON)
 	for _, v := range s.allocator.TargetItems() {
-		displayData[v.JobName] = prehook.LinkJSON{Link: v.Link.Link}
+		displayData[v.JobName] = targetscommon.LinkJSON{Link: v.Link.Link}
 	}
 	s.jsonHandler(w, displayData)
 }
@@ -259,7 +261,7 @@ func (s *server) PrometheusMiddleware(next http.Handler) http.Handler {
 func (s *server) TargetsHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()["collector_id"]
 
-	var compareMap = make(map[string][]prehook.TargetItem) // CollectorName+jobName -> TargetItem
+	var compareMap = make(map[string][]targetscommon.TargetItem) // CollectorName+jobName -> TargetItem
 	for _, v := range s.allocator.TargetItems() {
 		compareMap[v.CollectorName+v.JobName] = append(compareMap[v.CollectorName+v.JobName], *v)
 	}

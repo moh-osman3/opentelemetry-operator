@@ -20,7 +20,7 @@ import (
 
 	"github.com/prometheus/common/model"
 	
-	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/prehook"
+	"github.com/open-telemetry/opentelemetry-operator/cmd/otel-allocator/targetscommon"
 )
 
 
@@ -34,11 +34,11 @@ type targetGroupJSON struct {
 	Labels  model.LabelSet `json:"labels"`
 }
 
-func GetAllTargetsByJob(job string, cMap map[string][]prehook.TargetItem, allocator Allocator) map[string]collectorJSON {
+func GetAllTargetsByJob(job string, cMap map[string][]targetscommon.TargetItem, allocator Allocator) map[string]collectorJSON {
 	displayData := make(map[string]collectorJSON)
 	for _, j := range allocator.TargetItems() {
 		if j.JobName == job {
-			var targetList []prehook.TargetItem
+			var targetList []targetscommon.TargetItem
 			targetList = append(targetList, cMap[j.CollectorName+j.JobName]...)
 
 			var targetGroupList []targetGroupJSON
@@ -57,9 +57,9 @@ func GetAllTargetsByJob(job string, cMap map[string][]prehook.TargetItem, alloca
 	return displayData
 }
 
-func GetAllTargetsByCollectorAndJob(collector string, job string, cMap map[string][]prehook.TargetItem, allocator Allocator) []targetGroupJSON {
+func GetAllTargetsByCollectorAndJob(collector string, job string, cMap map[string][]targetscommon.TargetItem, allocator Allocator) []targetGroupJSON {
 	var tgs []targetGroupJSON
-	group := make(map[string]prehook.TargetItem)
+	group := make(map[string]targetscommon.TargetItem)
 	labelSet := make(map[string]model.LabelSet)
 	if _, ok := allocator.Collectors()[collector]; ok {
 		for _, targetItemArr := range cMap {
